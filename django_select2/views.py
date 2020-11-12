@@ -1,5 +1,5 @@
 """JSONResponse views for model widgets."""
-from collections import Iterable
+from collections.abc import Iterable
 
 from django.core import signing
 from django.core.signing import BadSignature
