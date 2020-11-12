@@ -1,8 +1,11 @@
 """JSONResponse views for model widgets."""
+from collections import Iterable
+
 from django.core import signing
 from django.core.signing import BadSignature
 from django.http import Http404, JsonResponse
 from django.views.generic.list import BaseListView
+from django.db.models import Q
 
 from .cache import cache
 from .conf import settings
@@ -48,14 +51,19 @@ class AutoResponseView(BaseListView):
 
     def get_queryset(self):
         """Get QuerySet from cached widget."""
-        kwargs = {
-            model_field_name: self.request.GET.get(form_field_name)
-            for form_field_name, model_field_name in self.widget.dependent_fields.items()
-            if form_field_name in self.request.GET
-            and self.request.GET.get(form_field_name, "") != ""
-        }
+        dependent_fields_query = Q()
+        for form_field_name, model_field_name in self.widget.dependent_fields.items():
+            value = self.request.GET.get(form_field_name)
+            if value:
+                if type(model_field_name) == str:
+                    dependent_fields_query &= Q(**{model_field_name: value})
+                elif isinstance(model_field_name, Iterable):
+                    or_fields = Q()
+                    for mfn in model_field_name:
+                        or_fields |= Q(**{mfn: value})
+                    dependent_fields_query &= or_fields
         return self.widget.filter_queryset(
-            self.request, self.term, self.queryset, **kwargs
+            self.request, self.term, self.queryset, dependent_fields_query
         )
 
     def get_paginate_by(self, queryset):

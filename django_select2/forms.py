@@ -376,7 +376,7 @@ class ModelSelect2Mixin:
             },
         )
 
-    def filter_queryset(self, request, term, queryset=None, **dependent_fields):
+    def filter_queryset(self, request, term, queryset=None, dependent_fields_query=None):
         """
         Return QuerySet filtered by search_fields matching the passed term.
 
@@ -385,9 +385,8 @@ class ModelSelect2Mixin:
                 the JSON view and can be used to dynamically alter the response queryset.
             term (str): Search term
             queryset (django.db.models.query.QuerySet): QuerySet to select choices from.
-            **dependent_fields: Dependent fields and their values. If you want to inherit
-                from ModelSelect2Mixin and later call to this method, be sure to pop
-                everything from keyword arguments that is not a dependent field.
+            dependent_fields_query: Dependent fields query with their values which can
+                include OR statements
 
         Returns:
             QuerySet: Filtered QuerySet
@@ -405,8 +404,8 @@ class ModelSelect2Mixin:
                 search_fields[1:],
                 Q(**{search_fields[0]: t}),
             )
-        if dependent_fields:
-            select &= Q(**dependent_fields)
+        if dependent_fields_query:
+            select &= dependent_fields_query
 
         return queryset.filter(select).distinct()
 
